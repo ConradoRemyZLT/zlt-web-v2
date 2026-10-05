@@ -3,12 +3,22 @@
 # Arma una copia del sitio en _site/ con la misma estructura que produccion
 # (/v2/ y /v2/novedades/) y corrige las rutas absolutas ("/v2/...", "/favicon.ico")
 # para que funcionen bajo /<nombre-del-repo>/. Los archivos originales no se tocan.
+#
+# Ademas:
+#  - Inserta el login (gate.js) en las dos paginas.
+#  - Videos de YouTube: la clave vive en el secreto YT_API_KEY del repo, nunca
+#    en el HTML. Aca se consulta YouTube y se publica la respuesta como
+#    v2/videos.json; la pagina lee ese archivo en vez de llamar a la API.
+#    Sin secreto (o si YouTube falla) la pagina muestra su lista fija de videos.
+#  - Se republica cada 6 horas para traer los videos nuevos del canal.
 
 name: Publicar en GitHub Pages
 
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "17 */6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -49,7 +59,36 @@ jobs:
           done
           sed -i -E "s#\"/([a-z0-9-]+\.(png|ico))\"#\"$BASE/\1\"#g" _site/site.webmanifest
 
+          # Login: el mismo gate de proyectos.somoszlt.com, justo despues de </title>
+          cp gate.js _site/gate.js
+          for f in _site/v2/index.html _site/v2/novedades/index.html; do
+            sed -i "0,/<\/title>/s##</title><script src=\"$BASE/gate.js\"></script>#" "$f"
+            grep -q "$BASE/gate.js" "$f" || { echo "No se pudo insertar el login en $f"; exit 1; }
+          done
+
+          # Videos: la pagina lee videos.json en vez de consultar la API de YouTube
+          H=_site/v2/index.html
+          perl -0pi -e "s#'https://www\.googleapis\.com/youtube/v3/playlistItems'\s*\+.*?encodeURIComponent\(cfg\.clave\);#'$BASE/v2/videos.json';#s; s#clave:'[^']*'#clave:'json'#" "$H"
+          if grep -q "googleapis.com/youtube" "$H" || grep -q "AIza" "$H"; then
+            echo "El HTML todavia llama a la API de YouTube o trae una clave"; exit 1
+          fi
+
           touch _site/.nojekyll
+
+      - name: Traer los ultimos videos del canal
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+        run: |
+          if [ -z "$YT_API_KEY" ]; then echo "Sin secreto YT_API_KEY: queda la lista fija"; exit 0; fi
+          LISTA=$(grep -oE "lista:'[^']+'" Home/html/ZLT-WEB-V2-home.html | head -1 | cut -d"'" -f2)
+          curl -fsS --get "https://www.googleapis.com/youtube/v3/playlistItems" \
+            --data-urlencode "part=snippet,contentDetails" \
+            --data-urlencode "maxResults=16" \
+            --data-urlencode "playlistId=$LISTA" \
+            --data-urlencode "key=$YT_API_KEY" \
+            -o _site/v2/videos.json \
+            && echo "videos.json: $(grep -c '"videoId"' _site/v2/videos.json) entradas" \
+            || { rm -f _site/v2/videos.json; echo "YouTube no respondio: queda la lista fija"; }
 
       - uses: actions/upload-pages-artifact@v3
         with:
