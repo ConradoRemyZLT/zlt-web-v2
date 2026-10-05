@@ -1,0 +1,10 @@
+# Proyectos que todavia no se lanzan: NO se publican (ver LEEME.txt)
+/Home/PROYECTOS SIN PUBLICAR/
+
+# Copia armada del sitio (la genera el workflow de Pages)
+/_site/
+
+# Archivos del sistema
+desktop.ini
+Thumbs.db
+~$*

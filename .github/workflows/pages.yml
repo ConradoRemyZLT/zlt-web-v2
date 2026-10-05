@@ -1,0 +1,66 @@
+# Publica la web en GitHub Pages cada vez que se sube algo a main.
+#
+# Arma una copia del sitio en _site/ con la misma estructura que produccion
+# (/v2/ y /v2/novedades/) y corrige las rutas absolutas ("/v2/...", "/favicon.ico")
+# para que funcionen bajo /<nombre-del-repo>/. Los archivos originales no se tocan.
+
+name: Publicar en GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Armar el sitio
+        run: |
+          set -euo pipefail
+          BASE="/${GITHUB_REPOSITORY#*/}"
+          mkdir -p _site/v2/novedades _site/v2/brochures
+
+          cp Home/html/ZLT-WEB-V2-home.html          _site/v2/index.html
+          cp novedades/html/ZLT-WEB-V2-novedades.html _site/v2/novedades/index.html
+          cp Home/brochures/*.pdf                     _site/v2/brochures/
+          cp Home/iconos/web/*                        _site/
+
+          # La raiz manda a /v2/
+          printf '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta http-equiv="refresh" content="0; url=%s/v2/"><a href="%s/v2/">ZLT</a>\n' "$BASE" "$BASE" > _site/index.html
+
+          # Rutas absolutas -> bajo /<repo>/
+          for f in _site/v2/index.html _site/v2/novedades/index.html; do
+            sed -i -E \
+              -e "s#(href|src)=\"/([^/])#\1=\"$BASE/\2#g" \
+              -e "s#(['\"])/v2/#\1$BASE/v2/#g" \
+              "$f"
+          done
+          sed -i -E "s#\"/([a-z0-9-]+\.(png|ico))\"#\"$BASE/\1\"#g" _site/site.webmanifest
+
+          touch _site/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

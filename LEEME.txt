@@ -1,0 +1,68 @@
+WEB ZLT v2
+Repositorio completo · 29/09/2026
+
+Es la versión moderna del sitio, la que está en proyectos.somoszlt.com/v2/
+y que va a reemplazar a la oficial cuando se decida la mudanza.
+
+Son dos páginas, y cada una tiene su carpeta:
+
+  Home/        la portada, con los proyectos, el mapa, los videos y el formulario
+  novedades/   la sección de prensa, en proyectos.somoszlt.com/v2/novedades/
+
+En cada una, el HTML que se publica está en `html/`. Es un solo archivo: lleva
+adentro las imágenes, los tipos de letra y el código, así que funciona solo, sin
+carpetas al lado. Los brochures son la excepción: son archivos aparte y tienen
+que subirse junto al HTML, en una carpeta `brochures/`.
+
+Las imágenes de este repositorio son las ORIGINALES, en su calidad completa —
+PNG y JPG—. Dentro del HTML viajan convertidas a WebP para que la página pese
+menos. Si hay que retocar algo o usarlo en otra pieza, se usan las de acá.
+
+Lo que no es un archivo —videos de YouTube, sitios de los proyectos, teléfonos,
+redes— está listado en `links/`, en planillas que se abren con Excel.
+
+CÓMO ESTÁ ORDENADO
+
+  Home/
+    html/           el HTML que se publica, más robots.txt y sitemap.xml
+    logos/
+      marca/        el isologo de ZLT
+      proyectos/    el logo de cada proyecto
+      acompanan/    los logos de quienes acompañan cada proyecto
+      inquilinos/   los logos de las empresas alojadas en los parques
+    fotos/
+      proyectos/    una carpeta por proyecto, con su galería completa
+      institucional/ directorio, oficinas, partners, banner
+    brochures/      los PDF que la web ofrece para descargar
+    iconos/
+      web/          favicon, ícono de iOS y Android, imagen para compartir
+      contacto/     los íconos de WhatsApp, mail, dirección y redes
+      mapa/         los pines del mapa de presencia
+    links/
+      videos-youtube.csv      todos los videos, con dónde aparece cada uno
+      enlaces-externos.csv    los sitios propios de cada proyecto
+      contacto-y-redes.csv    teléfono, mail, dirección y redes sociales
+      mapa-presencia.csv      cada proyecto con su latitud y longitud
+    _inventario.csv           la lista completa: qué es cada archivo y cuánto pesa
+
+    PROYECTOS SIN PUBLICAR/   Patagonia AI Factories y El Silencioso.
+                              Están armados y listos, pero fuera de la web
+                              hasta que se lancen. No se publican todavía.
+
+  novedades/
+    html/           el HTML de la sección de prensa
+    iconos/web/     los mismos íconos que la home
+    links/
+      notas-de-prensa.csv   las 88 notas: fecha, medio, título y enlace
+      imagenes-remotas.csv  las fotos de las notas. No son archivos: se cargan
+                            desde el servidor de la web oficial, así que acá van
+                            las direcciones.
+      medios.csv            cuántas notas publicó cada medio
+
+DOS COSAS PARA TENER EN CUENTA
+
+  · Las dos páginas están hoy en `noindex`: Google no las va a mostrar. Es a
+    propósito, para que no le compitan a somoszlt.com hasta la mudanza.
+  · La sección de eventos de la home se arma sola con los últimos videos del
+    canal de YouTube. Necesita una clave de la API de YouTube para hacerlo; sin
+    ella muestra una lista fija de ocho videos y no se rompe nada.

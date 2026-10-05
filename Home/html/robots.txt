@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitio en preparación: cada página lleva noindex.
+# Cuando reemplace al oficial, poner INDEXABLE = True en seo.py y regenerar.
