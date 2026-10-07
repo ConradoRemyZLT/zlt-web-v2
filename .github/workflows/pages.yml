@@ -59,11 +59,13 @@ jobs:
           done
           sed -i -E "s#\"/([a-z0-9-]+\.(png|ico))\"#\"$BASE/\1\"#g" _site/site.webmanifest
 
-          # Login: el mismo gate de proyectos.somoszlt.com, justo despues de </title>
+          # Login: el mismo gate de proyectos.somoszlt.com, justo despues de </title>.
+          # Los HTML copiados de produccion ya lo traen (y la linea de rutas de
+          # arriba ya lo corrigio): en ese caso no se inserta de nuevo.
           cp gate.js _site/gate.js
           for f in _site/v2/index.html _site/v2/novedades/index.html; do
-            sed -i "0,/<\/title>/s##</title><script src=\"$BASE/gate.js\"></script>#" "$f"
-            grep -q "$BASE/gate.js" "$f" || { echo "No se pudo insertar el login en $f"; exit 1; }
+            grep -q "gate\.js" "$f" || sed -i "0,/<\/title>/s##</title><script src=\"$BASE/gate.js\"></script>#" "$f"
+            [ "$(grep -o "$BASE/gate\.js" "$f" | wc -l)" = 1 ] || { echo "El login no quedo una sola vez en $f"; exit 1; }
           done
 
           # Videos: la pagina lee videos.json en vez de consultar la API de YouTube
