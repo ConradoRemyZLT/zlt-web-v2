@@ -83,14 +83,20 @@ jobs:
         run: |
           if [ -z "$YT_API_KEY" ]; then echo "Sin secreto YT_API_KEY: queda la lista fija"; exit 0; fi
           LISTA=$(grep -oE "lista:'[^']+'" Home/html/ZLT-WEB-V2-home.html | head -1 | cut -d"'" -f2)
-          curl -fsS --get "https://www.googleapis.com/youtube/v3/playlistItems" \
+          CODE=$(curl -sS --get "https://www.googleapis.com/youtube/v3/playlistItems" \
             --data-urlencode "part=snippet,contentDetails" \
             --data-urlencode "maxResults=16" \
             --data-urlencode "playlistId=$LISTA" \
             --data-urlencode "key=$YT_API_KEY" \
-            -o _site/v2/videos.json \
-            && echo "videos.json: $(grep -c '"videoId"' _site/v2/videos.json) entradas" \
-            || { rm -f _site/v2/videos.json; echo "YouTube no respondio: queda la lista fija"; }
+            -o _site/v2/videos.json -w '%{http_code}' || echo 000)
+          if [ "$CODE" = 200 ]; then
+            echo "videos.json: $(grep -c '"videoId"' _site/v2/videos.json) entradas"
+          else
+            # El motivo que da YouTube (la respuesta de error no incluye la clave)
+            echo "YouTube respondio $CODE: queda la lista fija"
+            grep -oE '"(message|reason)": *"[^"]*"' _site/v2/videos.json | sort -u || true
+            rm -f _site/v2/videos.json
+          fi
 
       - uses: actions/upload-pages-artifact@v3
         with:
