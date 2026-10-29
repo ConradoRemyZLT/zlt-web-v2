@@ -216,6 +216,7 @@ body.en .prose .l-en,body.en p .l-en{display:inline}
 #pre .pbar i{display:block;height:100%;width:0;background:var(--gold2);transition:width .35s linear}
 @keyframes preIn{from{opacity:0;transform:translateY(14px) scale(.97);filter:blur(6px)}to{opacity:.96;transform:none;filter:none}}
 body.ready #pre{opacity:0;visibility:hidden}
+html.loading,html.loading body{overflow:hidden}
 
 /* ═══════════════ PROGRESO DE SCROLL ═══════════════ */
 #prog{
@@ -2582,21 +2583,60 @@ window.ZLT_YT={lista:'UULFoIySzJw_lUo5cw64mqrKvQ',clave:'',max:8,canal:'UCoIySzJ
   var $ = function (s, c) { return (c || document).querySelector(s); };
   var $$ = function (s, c) { return [].slice.call((c || document).querySelectorAll(s)); };
 
-  /* ── preloader: espera a las imágenes visibles, con tope de 3.5 s ── */
+  /* ── pantalla de carga: el isologotipo de ZLT queda hasta que el sitio está listo ──
+     Espera la página completa, las tipografías, las imágenes de arriba y que el video
+     del banner ya se vea en HD (o el tope de 6 s del reproductor). Tope total: 30 s. */
   (function () {
-    var pre = $('#pre'), bar = $('#pre .pbar i');
+    var pre = $('#pre');
     if (!pre) { document.body.classList.add('ready'); return; }
-    var imgs = $$('img').filter(function (i) { return i.loading !== 'lazy'; });
-    var total = Math.max(imgs.length, 1), done = 0, ended = false;
-    function tick() { done++; if (bar) bar.style.width = Math.min(100, done / total * 100) + '%'; if (done >= total) finish(); }
-    function finish() {
-      if (ended) return; ended = true;
-      if (bar) bar.style.width = '100%';
-      setTimeout(function () { document.body.classList.add('ready'); kick(); }, 220);
+    var bar = document.querySelector('#pre .pbar i'), root = document.documentElement;
+    var done = false, total = 0, ok = 0, gateT = 0;
+    root.classList.add('loading');
+    function paint() { if (bar) bar.style.width = (total ? Math.max(6, Math.round(ok / total * 100)) : 6) + '%'; }
+    function track(p) { total++; paint(); return Promise.resolve(p).catch(function () { }).then(function () { ok++; paint(); }); }
+    function cap(p, ms) { return Promise.race([p, new Promise(function (r) { setTimeout(r, ms); })]); }
+    function imgReady(im) {
+      if (!im.getAttribute('src')) return Promise.resolve();
+      var p = (im.complete && im.naturalWidth) ? Promise.resolve()
+        : new Promise(function (r) { im.addEventListener('load', r, { once: true }); im.addEventListener('error', r, { once: true }); });
+      return p.then(function () { return im.decode ? im.decode().catch(function () { }) : null; });
     }
-    imgs.forEach(function (i) { i.complete ? tick() : (i.addEventListener('load', tick), i.addEventListener('error', tick)); });
-    if (!imgs.length) finish();
-    setTimeout(finish, 3500);
+    /* Login (gate.js). Mientras el login está en pantalla, la carga no termina:
+       recién al ingresar se ve esta pantalla y se espera a que el sitio esté listo. */
+    var GATE = new Promise(function (r) {
+      var gated = !!document.querySelector('script[src$="gate.js"]');
+      function pasa() { try { return sessionStorage.getItem('zlt_gate_ok') === '1'; } catch (e) { return true; } }
+      function fin() { gateT = Date.now(); r(); }
+      if (!gated || pasa()) return fin();
+      (function chk() { if (pasa() && !document.getElementById('zgate')) fin(); else setTimeout(chk, 150); })();
+    });
+    function finish(alListo) {
+      if (done) return; done = true; ok = total = Math.max(total, 1); paint();
+      var falta = Math.max(0, 900 - (Date.now() - gateT));        // que el logo llegue a verse
+      setTimeout(function () {
+        document.body.classList.add('ready'); root.classList.remove('loading');
+        try { dispatchEvent(new Event('resize')); } catch (e) { }   // medidas finales (mapa, galerías, videos)
+        if (alListo) alListo();
+      }, 260 + falta);
+    }
+    var all = [];
+    all.push(track(new Promise(function (r) { if (document.readyState === 'complete') r(); else addEventListener('load', r, { once: true }); })));
+    if (document.fonts && document.fonts.ready) all.push(track(cap(document.fonts.ready, 10000)));
+    [].forEach.call(document.querySelectorAll('img'), function (im) {
+      if (im.closest('#pre') || im.loading === 'lazy') return;
+      all.push(track(cap(imgReady(im), 20000)));
+    });
+
+    var hero = $('.vhero');
+    if (hero && !RM) {
+      all.push(track(GATE.then(function () {
+        return cap(new Promise(function (r) {
+          (function chk() { if (hero.classList.contains('playing')) r(); else setTimeout(chk, 200); })();
+        }), 12000);
+      })));
+    }
+    GATE.then(function () { setTimeout(function () { finish(kick); }, 30000); return Promise.all(all); })
+      .then(function () { finish(kick); });
   })();
 
   /* ── reveals ── */
