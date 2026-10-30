@@ -208,10 +208,10 @@ body.en .prose .l-en,body.en p .l-en{display:inline}
 /* ═══════════════ PRELOADER ═══════════════ */
 #pre{
   position:fixed;inset:0;z-index:10000;background:var(--ink);
-  display:grid;place-items:center;gap:26px;grid-auto-flow:row;
+  display:grid;place-items:center;align-content:center;justify-content:center;gap:26px;grid-auto-flow:row;
   transition:opacity .7s var(--ease-out),visibility .7s;
 }
-#pre img{width:clamp(96px,12vw,140px);opacity:.96;animation:preIn 1.1s var(--ease-out) both}
+#pre img{width:clamp(96px,12vw,140px);height:auto;display:block;opacity:.96;animation:preIn 1.1s var(--ease-out) both}
 #pre .pbar{width:min(190px,42vw);height:2px;background:rgba(236,233,225,.16);overflow:hidden;border-radius:2px}
 #pre .pbar i{display:block;height:100%;width:0;background:var(--gold2);transition:width .35s linear}
 @keyframes preIn{from{opacity:0;transform:translateY(14px) scale(.97);filter:blur(6px)}to{opacity:.96;transform:none;filter:none}}
@@ -2992,12 +2992,11 @@ window.ZLT_YT={lista:'UULFoIySzJw_lUo5cw64mqrKvQ',clave:'',max:8,canal:'UCoIySzJ
     });
   });
 
-  /* ── banner: intenta arrancar con sonido; si el navegador lo impide,
-        vuelve a montar en silencio y ofrece activarlo ── */
+  /* ── banner: arranca en silencio; el sonido lo activa quien mira, con el botón ── */
   (function () {
     var hero = $('.vhero');
     if (!hero) return;
-    var p = { el: hero, id: idHero(hero), kind: 'hero', muted: false, title: 'Video institucional ZLT' };
+    var p = { el: hero, id: idHero(hero), kind: 'hero', muted: true, title: 'Video institucional ZLT' };
     hero.classList.toggle('vert', !!hero.dataset.ytV && ANGOSTA.matches);
     players.push(p);
     if (RM) { hero.classList.add('muted'); return; }   // sin movimiento: se queda el póster
@@ -3014,11 +3013,8 @@ window.ZLT_YT={lista:'UULFoIySzJw_lUo5cw64mqrKvQ',clave:'',max:8,canal:'UCoIySzJ
       var r = frameHost.getBoundingClientRect();
       if (!r.width || !r.height) return;
       arrancado = true;
-      mount(p, false);
-      // si a los 2,6 s no está reproduciendo, el autoplay con audio fue bloqueado
-      setTimeout(function () {
-        if (!p.playing) { mount(p, true); }
-      }, 2600);
+      // arranca siempre en silencio: el sonido lo activa quien mira, con el botón
+      mount(p, true);
     }
     if (window.ResizeObserver) {
       new ResizeObserver(function () { arrancar(); fitPlayer(p); }).observe(frameHost);
@@ -3027,17 +3023,6 @@ window.ZLT_YT={lista:'UULFoIySzJw_lUo5cw64mqrKvQ',clave:'',max:8,canal:'UCoIySzJ
       var tries = setInterval(function () { arrancar(); if (arrancado) clearInterval(tries); }, 300);
     }
     arrancar();
-
-    // primer gesto del visitante: si quedó en silencio, se activa el sonido
-    function firstGesture() {
-      if (p.muted && p.frame) { setMuted(p, false); soloAudio(p); }
-      ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(function (ev) {
-        removeEventListener(ev, firstGesture, true);
-      });
-    }
-    ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(function (ev) {
-      addEventListener(ev, firstGesture, { capture: true, once: false, passive: true });
-    });
 
     // pausa mientras no se ve, para no gastar batería ni datos
     if (window.IntersectionObserver) {
